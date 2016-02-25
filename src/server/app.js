@@ -16,27 +16,6 @@ var routes = require('./routes/index.js');
 // *** express instance *** //
 var app = express();
 
-// *** main routes *** //
-var connectionString = 'postgres://localhost:5432/puppies';
-app.get('/api/puppies', function(req, res, next) {
-  var responseArray = [];
-  pg.connect(connectionString, function(err, client, done) {
-    if(err) {
-      done();
-      return res.status(500).json({status: 'error',message: 'Something didn\'t work'});
-    }
-    var query = client.query('select * from puppies');
-    query.on('row', function(row) {
-      responseArray.push(row);
-    });
-    query.on('end', function() {
-      res.json(responseArray);
-      done();
-    });
-    pg.end();
-  });
-});
-
 
 // *** view engine *** //
 var swig = new swig.Swig();
@@ -58,6 +37,104 @@ app.use(express.static(path.join(__dirname, '../client')));
 
 // *** main routes *** //
 app.use('/', routes);
+
+var connectionString = 'postgres://localhost:5432/puppies';
+app.get('/api/puppies/', function(req, res, next) {
+  var responseArray = [];
+  pg.connect(connectionString, function(err, client, done) {
+    if(err) {
+      console.log(err);
+      done();
+      return res.status(500).json({status: 'error',message: 'Something didn\'t work'});
+    }
+    var query = client.query('select * from puppies');
+    query.on('row', function(row) {
+      responseArray.push(row);
+    });
+    query.on('end', function() {
+      res.json(responseArray);
+      done();
+    });
+     pg.end();
+  });
+});
+
+app.get('/api/puppy/:id', function(req, res, next) {
+  var responseArray = [];
+  var connectionString = 'postgres://localhost:5432/puppies';
+  pg.connect(connectionString, function(err, client, done) {
+
+    if(err) {
+      done();
+      return res.status(500).json({status: 'error',message: 'Something didn\'t work'});
+    }
+
+    var query = client.query('select * from puppies where id=' + req.params.id);
+
+    query.on('row', function(row) {
+      responseArray.push(row);
+    });
+
+    query.on('end', function() {
+      res.json(responseArray);
+      done();
+    });
+
+    pg.end();
+  });
+});
+
+app.post('/api/puppy/new', function(req, res, next) {
+  var newPuppy = req.body;
+  pg.connect(connectionString, function(err, client, done) {
+    if(err) {
+      done();
+      return res.status(500).json({status: 'error',message: 'Something didn\'t work'});
+    }
+    var query = client.query("insert into puppies (name, breed, age_months) values ('" + req.body.name + ", " + req.body.breed + ", " + req.body.age + ")");
+
+    query.on('end', function() {
+      res.json({status: 'success', message: 'Inserted new puppy into the pound!'});
+      done();
+    });
+    pg.end();
+  });
+});
+
+app.delete('/api/puppies/:id', function(req, res, next) {
+  pg.connect(connectionString, function(err, client, done) {
+    if(err) {
+      done();
+      return res.status(500).json({status: 'error',message: 'Something didn\'t work'});
+    }
+    var query = client.query('delete from puppies where id=' + req.params.id);
+
+    query.on('end', function() {
+      res.json({status: 'success', message: 'Sent a puppy to the farm upstate!'});
+      done();
+    });
+    pg.end();
+  });
+});
+
+// curl --data "column=name&value=linus" localhost:5000/api/puppy/id
+
+app.put('/api/puppy/:id', function(req, res, next) {
+  var updatePup = req.body;
+  pg.connect(connectionString, function(err, client, done) {
+    if(err) {
+      done();
+      return res.status(500).json({status: 'error',message: 'Something didn\'t work'});
+    }
+    var query = client.query("update puppies set " + updatePup.column + "='" + updatePup.value + "'" + "where id=" + req.params.id);
+
+    query.on('end', function() {
+      res.json({status: 'success', message: 'Inserted new puppy into the pound!'});
+      done();
+    });
+    pg.end();
+  });
+});
 
 
 // catch 404 and forward to error handler
